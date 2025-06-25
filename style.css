@@ -1,0 +1,125 @@
+/* Base font and layout */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    margin: 0;
+    padding: 0;
+
+}
+.container {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+
+/* Form and input styling */
+.entryform {
+       justify-content: center; 
+}
+
+
+.form-control, form .form-select {
+    margin-bottom: 20px;
+    display: flex;
+}
+
+
+/* Table styling */
+.entrytable {
+  width: 100%;
+  min-width: 900px; /* Ensures horizontal scrolling on small screens */
+  border-collapse: collapse;
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #fff;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.entrytable caption {
+  font-size: 1.4rem;
+  font-weight: 600;
+  padding: 1rem 0;
+  color: #333;
+}
+
+.entrytable thead {
+  background-color: #f0f4f8;
+  color: #333;
+}
+
+.entrytable th,
+.entrytable td {
+  padding: 12px 16px;
+  border: 1px solid #dee2e6;
+  text-align: left;
+  white-space: nowrap; /* Prevents line breaks inside cells */
+}
+
+.entrytable tbody tr:hover {
+  background-color: #f9f9f9;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.entrytable th {
+  font-weight: 600;
+}
+
+/* Make the container horizontally scrollable */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* Optional: scroll bar style for webkit browsers */
+.table-responsive::-webkit-scrollbar {
+  height: 8px;
+}
+.table-responsive::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+.table-responsive::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+/* button styling */
+
+/* Align buttons nicely inside the action cell */
+.entrytable td.text-center button {
+  font-size: 0.85rem;
+  padding: 5px 10px;
+  margin-bottom: 3px;
+  min-width: 60px;
+}
+
+/* Optional: subtle box-shadow and transition */
+.entrytable td.text-center button {
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  transition: transform 0.1s ease;
+}
+
+.entrytable td.text-center button:hover {
+  transform: scale(1.05);
+}
+
+
+.print-btn {
+  background-color: #6366f1;
+  width: 90%;
+  color: white;
+  font-weight: 500;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.print-btn:hover {
+  transform: scale(1.05);
+}
