@@ -3,23 +3,36 @@
 // Retrieve entries from localStorage or initialize empty array
 let entries = JSON.parse(localStorage.getItem('deliveryEntries')) || [];
 
-// === ADD THIS MIGRATION BLOCK ===
+// === MIGRATION SCRIPT START ===
+// This runs one time to fix old data
 let dataWasMigrated = false;
 entries.forEach(entry => {
     // Check if the businessYear property does NOT exist
     if (entry.businessYear === undefined) { 
         console.log('Found old entry, migrating...');
-    
+        // Create it by guessing from the calendar year
+        if (entry.date) {
+            entry.businessYear = new Date(entry.date).getFullYear().toString();
+        } else {
             // As a last resort, use a default (e.g., current year)
             entry.businessYear = new Date().getFullYear().toString(); 
+        }
         dataWasMigrated = true;
     }
 });
 
+// If we made any changes, save them back to localStorage immediately
+if (dataWasMigrated) {
+    console.log('Migration complete. Saving updated entries...');
+    localStorage.setItem('deliveryEntries', JSON.stringify(entries));
+}
+// === MIGRATION SCRIPT END ===
+
+
 // Cache DOM elements
 const form = document.getElementById('entryForm');
 const dateInput = document.getElementById('deliveryDate');
-const businessYearInput = document.getElementById('businessYear'); // === ADDED ===
+const businessYearInput = document.getElementById('businessYear');
 const placeInput = document.getElementById('place');
 const partyInput = document.getElementById('party');
 const areaInput = document.getElementById('area');
@@ -29,7 +42,6 @@ const quantityInput = document.getElementById('quantity')
 const submitbutton = document.getElementById('submitbutton');
 
 const tableBody = document.getElementById('entryTableBody');
-// ... (all filter input caches are the same)
 const filterstartDate = document.getElementById('startDate');
 const filterendDate = document.getElementById('endDate');
 const filterPlace = document.getElementById('filterPlace');
@@ -41,16 +53,15 @@ const filterQuantity = document.getElementById('filterQuantity');
 
 // Current edit index (-1 means no edit in progress)
 let editIndex = -1;
-// This will hold the selected *Business Year* (e.g., "2081")
-let selectedYear = ""; // === MODIFIED ===
+// This will hold the selected Business Year (e.g., "2081")
+let selectedYear = ""; 
 
 // Initialize: render table on page load
 document.addEventListener('DOMContentLoaded', () => {
-    // === MODIFIED THIS BLOCK ===
-    // Set default year to the latest business year in data
     const years = getUniqueBusinessYears();
     if (years.length > 0) {
-        selectedYear = years[0]; // Default to the most recent year
+        // Set default to the LATEST year (last item in ascending array)
+        selectedYear = years[years.length - 1]; 
     } else {
         // Provide a default if no data exists yet
         selectedYear = new Date().getFullYear().toString(); 
@@ -63,17 +74,17 @@ document.addEventListener('DOMContentLoaded', () => {
 // Form submission handler
 form.addEventListener('submit', function(e) {
     e.preventDefault();
-    // === MODIFIED VALIDATION ===
+    // Validation
     if (!partyInput || !dateInput.value || !areaInput.value || !placeInput.value || !transporterInput.value
-         || !quantityInput.value || !purchaseInput.value || !businessYearInput.value) { // === ADDED ===
+         || !quantityInput.value || !purchaseInput.value || !businessYearInput.value) {
         alert('Please fill in all fields.');
         return;
     }
     
-    // === MODIFIED ENTRY OBJECT ===
+    // Collect entry data
     const entry = {
         date: dateInput.value,
-        businessYear: businessYearInput.value.trim(), // === ADDED ===
+        businessYear: businessYearInput.value.trim(),
         place: placeInput.value.trim(),
         party: partyInput.value.trim(),
         area: areaInput.value.trim(),
@@ -94,7 +105,6 @@ form.addEventListener('submit', function(e) {
     // Save to localStorage
     localStorage.setItem('deliveryEntries', JSON.stringify(entries));
 
-    // === MODIFIED THIS BLOCK ===
     // Automatically switch the view to the year of the entry you just added/edited
     selectedYear = entry.businessYear;
     renderYearTabs(); // Re-render tabs in case a new year was added
@@ -108,8 +118,7 @@ function renderTable() {
     // Clear existing rows
     tableBody.innerHTML = '';
 
-    // === MODIFIED THIS FILTER LOGIC ===
-    // Filter the entries by the globally selected *Business Year*
+    // Filter the entries by the globally selected Business Year
     const yearEntries = entries.filter(entry => {
         return entry.businessYear === selectedYear;
     });
@@ -157,7 +166,7 @@ function renderTable() {
 function editEntry(index) {
     const entry = entries[index];
     dateInput.value = entry.date;
-    businessYearInput.value = entry.businessYear; // === ADDED ===
+    businessYearInput.value = entry.businessYear;
     placeInput.value = entry.place;
     partyInput.value = entry.party;
     areaInput.value = entry.area;
@@ -182,32 +191,33 @@ function deleteEntry(index) {
     }
 }
 
-// === NEW FUNCTIONS MODIFIED/RENAMED ===
-
 /**
  * Gets a sorted list of unique *business years* from the entries.
  */
-function getUniqueBusinessYears() { // === RENAMED & MODIFIED ===
+function getUniqueBusinessYears() {
     const years = new Set(
         entries
-            .map(entry => entry.businessYear) // === Get businessYear field ===
+            .map(entry => entry.businessYear)
             .filter(year => year) // Filter out any null/undefined entries
     );
-    // Sort in descending order (e.g., "2081", "2080")
-    return Array.from(years).sort((a, b) => b.localeCompare(a));
+    // Sort in ascending order (e.g., "2080", "2081")
+    return Array.from(years).sort((a, b) => a.localeCompare(b));
 }
 
 /**
  * Renders the year selection tabs
  */
 function renderYearTabs() {
-    const years = getUniqueBusinessYears(); // === Using new function ===
+    const years = getUniqueBusinessYears(); 
     
     // If the currently selected year isn't in the list
     // (e.g., it's the default "2025" but no entries exist),
     // add it to the list just for the tab.
-    if (!years.includes(selectedYear)) {
-        years.unshift(selectedYear); // Add it to the beginning
+    if (years.length === 0 || !years.includes(selectedYear)) {
+        if (selectedYear) {
+             years.push(selectedYear); // Add it
+             years.sort((a, b) => a.localeCompare(b)); // Re-sort
+        }
     }
 
     const tabsContainer = document.getElementById('yearTabs');
@@ -218,7 +228,7 @@ function renderYearTabs() {
         li.className = 'nav-item';
         const a = document.createElement('a');
         a.className = 'nav-link';
-        if (year === selectedYear) { // === Use string comparison ===
+        if (year === selectedYear) {
             a.classList.add('active'); // Highlight the selected year
         }
         a.href = '#';
@@ -240,72 +250,11 @@ function renderYearTabs() {
  * Finds the original index of an entry in the main 'entries' array.
  */
 function findOriginalIndex(entry) {
-    // === Made this more robust to find the exact entry ===
     return entries.findIndex(e => 
         e.date === entry.date &&
         e.party === entry.party &&
         e.place === entry.place &&
-        e.businessYear === entry.businessYear && // === ADDED ===
+        e.businessYear === entry.businessYear &&
         e.quantity === entry.quantity
     );
 }
-
-
-
-// Apply filters based on input fields
-function applyFilters() {
-    const startdateVal = filterstartDate.value ? new Date((filterstartDate.value)) : new Date('0001-01-01');
-    const enddateVal = filterendDate.value ? new Date((filterendDate.value)) : new Date('9999-12-31');
-    const placeVal = filterPlace.value.toLowerCase().trim();
-    const partyVal = filterParty.value.toLowerCase().trim();
-    const areaVal = filterArea.value.toLowerCase().trim();
-    const purchaseVal = filterPurchase.value.toLowerCase().trim();
-    const transporterVal = filterTransporter.value.toLowerCase().trim();
-    const quantityVal = filterQuantity.value.toLowerCase().trim();
-
-    document.querySelectorAll('#entryTableBody tr').forEach(row => {
-        const cells = row.querySelectorAll('td');
-        const matchstartDate = !startdateVal || new Date(formatdatetoYYYYMMDD(cells[1].textContent)) >= startdateVal;
-        const matchendDate = !enddateVal || new Date(formatdatetoYYYYMMDD(cells[1].textContent)) <= enddateVal;
-        const matchPlace = !placeVal || cells[2].textContent.toLowerCase().includes(placeVal);
-        const matchParty = !partyVal || cells[3].textContent.toLowerCase().includes(partyVal);
-        const matchArea = !areaVal || cells[4].textContent.toLowerCase().includes(areaVal);
-        const matchPurchase = !purchaseVal || cells[5].textContent.toLowerCase().includes(purchaseVal);
-        const matchTransporter = !transporterVal || cells[6].textContent.toLowerCase().includes(transporterVal);
-        const matchQuantity = !quantityVal || cells[7].textContent.toLowerCase().includes(quantityVal);
-        
-        // Show row if all filter conditions match
-        if (matchstartDate && matchendDate && matchPlace && matchParty && 
-            matchArea && matchTransporter && matchPurchase && matchQuantity) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
-    });
-}
-
-
-function formatDateToDDMMYYYY(dateString) {
-  if (!dateString) return '';
-  const [year, month, day] = dateString.split("-");
-  return `${day}-${month}-${year}`;
-}
-
-function formatdatetoYYYYMMDD(datestring) {
-    if (!datestring) return '';
-    const [day, month, year] = datestring.split("-");
-    return `${year}-${month}-${day}`;
-}
-
-
-// Filter inputs event listeners
-filterstartDate.addEventListener('change', applyFilters);
-filterendDate.addEventListener('change', applyFilters);
-filterPlace.addEventListener('input', applyFilters);
-filterParty.addEventListener('input', applyFilters);
-filterArea.addEventListener('input', applyFilters);
-filterPurchase.addEventListener('input', applyFilters);
-filterTransporter.addEventListener('input', applyFilters);
-filterQuantity.addEventListener('input', applyFilters);
-
-

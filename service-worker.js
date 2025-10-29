@@ -1,14 +1,16 @@
-const CACHE_NAME = 'shiv-bricks-v3';
+const CACHE_NAME = 'shiv-bricks-v4'; // Changed to v2
 const urlsToCache = [
   './',
   './index.html',
   './style.css',
   './script.js',
+  './filter.js', // Added
+  './exportPDF.js', // Added
   './manifest.json',
   './mahadev.jpg',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.1/jspdf.umd.min.js', // Fixed version
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js'
 ];
 
@@ -47,4 +49,3 @@ self.addEventListener('activate', event => {
     })
   );
 });
-
