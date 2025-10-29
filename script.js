@@ -1,38 +1,44 @@
 // script.js
 
-// Retrieve entries from localStorage or initialize empty array
-let entries = JSON.parse(localStorage.getItem('deliveryEntries')) || [];
+// === NEW DATA STRUCTURE ===
+// Try to load the new tabbed data object
+let deliveryData = JSON.parse(localStorage.getItem('deliveryData'));
+let activeTab = ""; // This will hold the name of the currently selected tab
 
-// === MIGRATION SCRIPT START ===
-// This runs one time to fix old data
-let dataWasMigrated = false;
-entries.forEach(entry => {
-    // Check if the businessYear property does NOT exist
-    if (entry.businessYear === undefined) { 
-        console.log('Found old entry, migrating...');
-        // Create it by guessing from the calendar year
-        if (entry.date) {
-            entry.businessYear = new Date(entry.date).getFullYear().toString();
-        } else {
-            // As a last resort, use a default (e.g., current year)
-            entry.businessYear = new Date().getFullYear().toString(); 
-        }
-        dataWasMigrated = true;
+// === NEW MIGRATION SCRIPT ===
+// If new data doesn't exist, check for old 'deliveryEntries' array to migrate
+if (!deliveryData) {
+    let oldEntries = JSON.parse(localStorage.getItem('deliveryEntries'));
+    
+    if (Array.isArray(oldEntries) && oldEntries.length > 0) {
+        console.log('Migrating old array data to new tab-based structure...');
+        deliveryData = {}; // Initialize new data object
+        
+        oldEntries.forEach(entry => {
+            // Use the 'businessYear' we added as the new tab name
+            const tabName = '24-25'; 
+            if (!deliveryData[tabName]) {
+                deliveryData[tabName] = []; // Create an array for this tab
+            }
+            delete entry.businessYear; // No longer needed on the entry itself
+            deliveryData[tabName].push(entry);
+        });
+        
+        localStorage.setItem('deliveryData', JSON.stringify(deliveryData));
+        localStorage.removeItem('deliveryEntries'); // Clean up old key
+        console.log('Migration complete!');
+    } else if (!deliveryData) {
+        // This is a fresh install or the app is empty
+        deliveryData = {};
     }
-});
-
-// If we made any changes, save them back to localStorage immediately
-if (dataWasMigrated) {
-    console.log('Migration complete. Saving updated entries...');
-    localStorage.setItem('deliveryEntries', JSON.stringify(entries));
 }
-// === MIGRATION SCRIPT END ===
+// === END OF MIGRATION SCRIPT ===
 
 
 // Cache DOM elements
 const form = document.getElementById('entryForm');
 const dateInput = document.getElementById('deliveryDate');
-const businessYearInput = document.getElementById('businessYear');
+// businessYearInput is removed
 const placeInput = document.getElementById('place');
 const partyInput = document.getElementById('party');
 const areaInput = document.getElementById('area');
@@ -40,8 +46,10 @@ const purchaseInput = document.getElementById('purchase');
 const transporterInput = document.getElementById('transporter');
 const quantityInput = document.getElementById('quantity')
 const submitbutton = document.getElementById('submitbutton');
-
+const addTabButton = document.getElementById('addTabButton');
 const tableBody = document.getElementById('entryTableBody');
+
+// Cache all filter inputs
 const filterstartDate = document.getElementById('startDate');
 const filterendDate = document.getElementById('endDate');
 const filterPlace = document.getElementById('filterPlace');
@@ -53,38 +61,45 @@ const filterQuantity = document.getElementById('filterQuantity');
 
 // Current edit index (-1 means no edit in progress)
 let editIndex = -1;
-// This will hold the selected Business Year (e.g., "2081")
-let selectedYear = ""; 
 
 // Initialize: render table on page load
 document.addEventListener('DOMContentLoaded', () => {
-    const years = getUniqueBusinessYears();
-    if (years.length > 0) {
+    const tabs = getSortedTabs();
+    if (tabs.length > 0) {
         // Set default to the LATEST year (last item in ascending array)
-        selectedYear = years[years.length - 1]; 
+        activeTab = tabs[tabs.length - 1]; 
     } else {
-        // Provide a default if no data exists yet
-        selectedYear = new Date().getFullYear().toString(); 
+        // No tabs exist, let's prompt to create one
+        addNewTab();
     }
     
-    renderYearTabs();
+    renderTabs();
     renderTable();
 });
+
+// === NEW "ADD TAB" BUTTON LISTENER ===
+addTabButton.addEventListener('click', addNewTab);
 
 // Form submission handler
 form.addEventListener('submit', function(e) {
     e.preventDefault();
+    
+    // Check if there is an active tab to add to
+    if (!activeTab || !deliveryData[activeTab]) {
+        alert('Please create a tab first before adding entries.');
+        return;
+    }
+
     // Validation
-    if (!partyInput || !dateInput.value || !areaInput.value || !placeInput.value || !transporterInput.value
-         || !quantityInput.value || !purchaseInput.value || !businessYearInput.value) {
+    if (!dateInput.value || !placeInput.value || !partyInput.value || !areaInput.value ||
+        !purchaseInput.value || !transporterInput.value || !quantityInput.value) {
         alert('Please fill in all fields.');
         return;
     }
     
-    // Collect entry data
+    // Collect entry data (no businessYear)
     const entry = {
         date: dateInput.value,
-        businessYear: businessYearInput.value.trim(),
         place: placeInput.value.trim(),
         party: partyInput.value.trim(),
         area: areaInput.value.trim(),
@@ -94,21 +109,17 @@ form.addEventListener('submit', function(e) {
     };
 
     if (editIndex === -1) {
-        // Add new entry
-        entries.push(entry);
+        // Add new entry to the *active tab's array*
+        deliveryData[activeTab].push(entry);
     } else {
-        // Update existing entry
-        entries[editIndex] = entry;
+        // Update existing entry in the *active tab's array*
+        deliveryData[activeTab][editIndex] = entry;
         editIndex = -1;
         submitbutton.textContent = 'Add Delivery';
     }
-    // Save to localStorage
-    localStorage.setItem('deliveryEntries', JSON.stringify(entries));
-
-    // Automatically switch the view to the year of the entry you just added/edited
-    selectedYear = entry.businessYear;
-    renderYearTabs(); // Re-render tabs in case a new year was added
     
+    // Save the entire data object to localStorage
+    saveData();
     renderTable(); 
     form.reset();
 });
@@ -118,16 +129,13 @@ function renderTable() {
     // Clear existing rows
     tableBody.innerHTML = '';
 
-    // Filter the entries by the globally selected Business Year
-    const yearEntries = entries.filter(entry => {
-        return entry.businessYear === selectedYear;
-    });
+    // Get the entries for the *active tab only*
+    const tabEntries = deliveryData[activeTab] || [];
 
     let indexno = 1;
 
-    // Now, loop over the new 'yearEntries' array
-    yearEntries.forEach((entry) => {
-        
+    // Loop over the active tab's entries
+    tabEntries.forEach((entry, index) => { // 'index' is now the correct index in the tab array
         const row = tableBody.insertRow();
         row.insertCell().textContent = indexno;
         indexno++;
@@ -146,15 +154,14 @@ function renderTable() {
         editBtn.textContent = 'Edit';
         editBtn.className = 'btn btn-sm btn-primary me-2';
         
-        // Find the entry's *original* index for editing and deleting
-        const originalIndex = findOriginalIndex(entry);
-        editBtn.addEventListener('click', () => editEntry(originalIndex));
+        // The 'index' from forEach is the correct one to use
+        editBtn.addEventListener('click', () => editEntry(index));
 
         const delBtn = document.createElement('button');
         delBtn.textContent = 'Delete';
         delBtn.className = 'btn btn-sm btn-danger';
         
-        delBtn.addEventListener('click', () => deleteEntry(originalIndex));
+        delBtn.addEventListener('click', () => deleteEntry(index));
         
         actionsCell.appendChild(editBtn);
         actionsCell.appendChild(delBtn);
@@ -164,16 +171,18 @@ function renderTable() {
 
 // Edit entry: fill form with data
 function editEntry(index) {
-    const entry = entries[index];
+    // Get the entry from the active tab's array
+    const entry = deliveryData[activeTab][index];
+    
     dateInput.value = entry.date;
-    businessYearInput.value = entry.businessYear;
     placeInput.value = entry.place;
     partyInput.value = entry.party;
     areaInput.value = entry.area;
     purchaseInput.value = entry.purchase; 
     transporterInput.value = entry.transporter;
     quantityInput.value = entry.quantity;
-    editIndex = index;
+    
+    editIndex = index; // This is the index in the tab's array
     submitbutton.textContent = 'Update Delivery';
 
     document.documentElement.scrollTop = 0;
@@ -183,62 +192,55 @@ function editEntry(index) {
 // Delete entry: remove from array and update storage/table
 function deleteEntry(index) {
     if (confirm('Delete this entry?')) {
-        entries.splice(index, 1);
-        localStorage.setItem('deliveryEntries', JSON.stringify(entries));
-        
-        renderYearTabs(); // Re-render tabs in case a year is now empty
+        // Remove the entry from the active tab's array
+        deliveryData[activeTab].splice(index, 1);
+        saveData();
         renderTable();
+        // We don't need to re-render tabs, but if you want to
+        // delete a tab when it's empty, this is where you'd add that logic.
     }
 }
 
-/**
- * Gets a sorted list of unique *business years* from the entries.
- */
-function getUniqueBusinessYears() {
-    const years = new Set(
-        entries
-            .map(entry => entry.businessYear)
-            .filter(year => year) // Filter out any null/undefined entries
-    );
-    // Sort in ascending order (e.g., "2080", "2081")
-    return Array.from(years).sort((a, b) => a.localeCompare(b));
-}
-
-/**
- * Renders the year selection tabs
- */
-function renderYearTabs() {
-    const years = getUniqueBusinessYears(); 
-    
-    // If the currently selected year isn't in the list
-    // (e.g., it's the default "2025" but no entries exist),
-    // add it to the list just for the tab.
-    if (years.length === 0 || !years.includes(selectedYear)) {
-        if (selectedYear) {
-             years.push(selectedYear); // Add it
-             years.sort((a, b) => a.localeCompare(b)); // Re-sort
+// === NEW "ADD TAB" FUNCTION ===
+function addNewTab() {
+    const newTabName = prompt("Enter a name for the new tab (e.g., 'Diwali 2081'):");
+    if (newTabName) {
+        if (deliveryData[newTabName]) {
+            alert('A tab with this name already exists.');
+        } else {
+            // Create a new empty array for this tab
+            deliveryData[newTabName] = [];
+            activeTab = newTabName; // Make the new tab active
+            saveData();
+            renderTabs(); // Redraw the tabs list
+            renderTable(); // Redraw the table (will be empty)
         }
     }
+}
 
+// === NEW "RENDER TABS" FUNCTION ===
+function renderTabs() {
     const tabsContainer = document.getElementById('yearTabs');
     tabsContainer.innerHTML = ''; // Clear old tabs
+    
+    const tabs = getSortedTabs();
 
-    years.forEach(year => {
+    tabs.forEach(tabName => {
         const li = document.createElement('li');
         li.className = 'nav-item';
         const a = document.createElement('a');
         a.className = 'nav-link';
-        if (year === selectedYear) {
-            a.classList.add('active'); // Highlight the selected year
+        if (tabName === activeTab) {
+            a.classList.add('active'); // Highlight the selected tab
         }
         a.href = '#';
-        a.textContent = year;
+        a.textContent = tabName;
         
         a.addEventListener('click', (e) => {
             e.preventDefault();
-            selectedYear = year; // Update the selected year
-            renderYearTabs(); // Re-render tabs to show new active one
-            renderTable(); // Re-render the table for the new year
+            activeTab = tabName; // Update the active tab
+            renderTabs(); // Re-render tabs to show new active one
+            renderTable(); // Re-render the table for this tab
         });
         
         li.appendChild(a);
@@ -246,15 +248,21 @@ function renderYearTabs() {
     });
 }
 
-/**
- * Finds the original index of an entry in the main 'entries' array.
- */
-function findOriginalIndex(entry) {
-    return entries.findIndex(e => 
-        e.date === entry.date &&
-        e.party === entry.party &&
-        e.place === entry.place &&
-        e.businessYear === entry.businessYear &&
-        e.quantity === entry.quantity
-    );
+// === NEW "GET TABS" HELPER ===
+function getSortedTabs() {
+    // Get all the keys (tab names) from our data object
+    return Object.keys(deliveryData).sort((a, b) => a.localeCompare(b));
+}
+
+// === NEW "SAVE DATA" HELPER ===
+function saveData() {
+    localStorage.setItem('deliveryData', JSON.stringify(deliveryData));
+}
+
+// --- All functions from filter.js (like formatDateToDDMMYYYY) are still needed ---
+// (These are in filter.js, but script.js needs them too)
+function formatDateToDDMMYYYY(dateString) {
+  if (!dateString) return '';
+  const [year, month, day] = dateString.split("-");
+  return `${day}-${month}-${year}`;
 }

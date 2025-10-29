@@ -21,10 +21,7 @@
         <label for="deliveryDate" class="form-label">Delivery Date</label>
         <input type="date" class="form-control" id="deliveryDate" required>
       </div>
-      <div class="col-12 col-md-3">
-        <label for="businessYear" class="form-label">Business Year</label>
-        <input type="text" class="form-control" id="businessYear" placeholder="e.g., 2081" required>
-      </div>
+
       <div class="col-12 col-md-3">
         <label for="place" class="form-label">Place</label>
         <input type="text" class="form-control" id="place" placeholder="Place" required>
@@ -54,11 +51,12 @@
         <button type="submit" id="submitbutton" class="btn btn-success">Add Delivery Entry</button>
       </div>
     </form>
-    <input type="checkbox">
     
-    <ul class="nav nav-tabs" id="yearTabs" style="margin-bottom: 20px; margin-top: 20px;">
-        </ul>
-
+    <div class="d-flex align-items-center" style="margin-bottom: 20px; margin-top: 20px;">
+        <ul class="nav nav-tabs" id="yearTabs" style="flex-grow: 1;">
+            </ul>
+        <button class="btn btn-outline-primary btn-sm" id="addTabButton" style="margin-left: 10px; white-space: nowrap;">+ Add Tab</button>
+    </div>
     <div class="row my-4">
       <div class="col-12 col-md-2">
         <label for="startDate" class="form-label">From Date</label>
