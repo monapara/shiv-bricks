@@ -33,6 +33,8 @@ function applyFilters() {
             row.style.display = 'none';
         }
     });
+    document.getElementById('totalCount').textContent = visibleCount;
+    document.getElementById('totalQuantity').textContent = visibleQuantitySum;
 }
 
 
