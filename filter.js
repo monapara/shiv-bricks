@@ -9,6 +9,9 @@ function applyFilters() {
     const transporterVal = filterTransporter.value.toLowerCase().trim();
     const quantityVal = filterQuantity.value.toLowerCase().trim();
 
+    let visibleCount = 0;
+    let visibleQuantitySum = 0;
+    
     document.querySelectorAll('#entryTableBody tr').forEach(row => {
         const cells = row.querySelectorAll('td');
         const matchstartDate = !startdateVal || new Date(formatdatetoYYYYMMDD(cells[1].textContent)) >= startdateVal;
@@ -20,8 +23,6 @@ function applyFilters() {
         const matchTransporter = !transporterVal || cells[6].textContent.toLowerCase().includes(transporterVal);
         const matchQuantity = !quantityVal || cells[7].textContent.toLowerCase().includes(quantityVal);
 
-        let visibleCount = 0;
-        let visibleQuantitySum = 0;
         // Show row if all filter conditions match
         if (matchstartDate && matchendDate && matchPlace && matchParty && 
             matchArea && matchTransporter && matchPurchase && matchQuantity) {
