@@ -24,12 +24,17 @@ function exportTableToPDF() {
       .map((cell) => cell.textContent.trim())
   );
 
+  const totalCount = document.getElementById('totalCount').textContent;
+  const totalQty = document.getElementById('totalQuantity').textContent;
+  
   const headers = [["No." , "Date", "Place", "Party", "Area", "Purchase", "Transporter", "Quantity"]];
+  const footers = [[totalCount, "", "", "", "", "", "Total:", totalQty]];
 
   doc.autoTable({
     startY: 35,
     head: headers,
     body: data,
+    foot: footers,
     theme: "grid",
     styles: {
       font: "helvetica",
@@ -50,3 +55,4 @@ function exportTableToPDF() {
 
   doc.save("ShivBricks.pdf");
 }
+
