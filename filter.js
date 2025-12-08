@@ -19,11 +19,16 @@ function applyFilters() {
         const matchPurchase = !purchaseVal || cells[5].textContent.toLowerCase().includes(purchaseVal);
         const matchTransporter = !transporterVal || cells[6].textContent.toLowerCase().includes(transporterVal);
         const matchQuantity = !quantityVal || cells[7].textContent.toLowerCase().includes(quantityVal);
-        
+
+        let visibleCount = 0;
+        let visibleQuantitySum = 0;
         // Show row if all filter conditions match
         if (matchstartDate && matchendDate && matchPlace && matchParty && 
             matchArea && matchTransporter && matchPurchase && matchQuantity) {
             row.style.display = '';
+            visibleCount++;
+            const qty = parseFloat(cells[7].textContent) || 0;
+            visibleQuantitySum += qty;
         } else {
             row.style.display = 'none';
         }
