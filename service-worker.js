@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shiv-bricks-v7'; 
+const CACHE_NAME = 'shiv-bricks-v8'; 
 const urlsToCache = [
   './',
   './index.html',
@@ -49,6 +49,7 @@ self.addEventListener('activate', event => {
     })
   );
 });
+
 
 
 
