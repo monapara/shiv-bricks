@@ -1,58 +1,66 @@
-
 function exportTableToPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  // Centered Firm Name
+  // Title
   const pageWidth = doc.internal.pageSize.getWidth();
-  const titleText = "Shiv Bricks";
-  const textWidth = doc.getTextWidth(titleText);
-  const xOffset = (pageWidth - textWidth) / 2;
+  const title = "Shiv Bricks";
   doc.setFontSize(18);
-  doc.text(titleText, xOffset, 20);
-  doc.setFontSize(12);
+  doc.text(title, (pageWidth - doc.getTextWidth(title)) / 2, 20);
 
-  // Get only visible (filtered) rows from DOM
-  const table = document.getElementById("entryTableBody");
-  const rows = Array.from(table.querySelectorAll("tr")).filter(
-    (row) => row.style.display !== "none"
-  );
+  // Get selected column indexes
+  const selectedCols = Array.from(
+    document.querySelectorAll(".pdf-col:checked")
+  ).map(cb => parseInt(cb.value));
 
-  const data = rows.map((row) =>
-    Array.from(row.querySelectorAll("td"))
-      .slice(0, 8) // only data cells, skip action buttons
-      .map((cell) => cell.textContent.trim())
-  );
+  if (selectedCols.length === 0) {
+    alert("Please select at least one column to export.");
+    return;
+  }
 
-  const totalCount = document.getElementById('totalCount').textContent;
-  const totalQty = document.getElementById('totalQuantity').textContent;
-  
-  const headers = [["No." , "Date", "Place", "Party", "Area", "Purchase", "Transporter", "Quantity"]];
-  const footers = [[totalCount, "", "", "", "", "", "Total:", totalQty]];
+  // Headers (from table head)
+  const headerCells = document.querySelectorAll("thead th");
+  const headers = [
+    selectedCols.map(i => headerCells[i].textContent.trim())
+  ];
+
+  // Visible rows only
+  const rows = Array.from(
+    document.querySelectorAll("#entryTableBody tr")
+  ).filter(row => row.style.display !== "none");
+
+  const body = rows.map(row => {
+    const cells = row.querySelectorAll("td");
+    return selectedCols.map(i => cells[i].textContent.trim());
+  });
+
+  // Footer (only if Quantity is selected)
+  const totalCount = document.getElementById("totalCount").textContent;
+  const totalQty = document.getElementById("totalQuantity").textContent;
+
+  let foot = [];
+  if (selectedCols.includes(7)) {
+    foot = [
+      selectedCols.map(i =>
+        i === 0 ? totalCount :
+        i === 7 ? totalQty : ""
+      )
+    ];
+  }
 
   doc.autoTable({
     startY: 35,
     head: headers,
-    body: data,
-    foot: footers,
+    body: body,
+    foot: foot,
     theme: "grid",
-    styles: {
-      font: "helvetica",
-      textColor: 17,
-      fontSize: 10,
-      cellPadding: 4,
-    },
+    styles: { fontSize: 10 },
     headStyles: {
       fillColor: [52, 73, 94],
-      textColor: [255, 255, 255],
-      fontStyle: "bold",
-    },
-    alternateRowStyles: {
-      fillColor: [240, 240, 240],
-    },
-    margin: { top: 35 },
+      textColor: 255,
+      fontStyle: "bold"
+    }
   });
 
   doc.save("ShivBricks.pdf");
 }
-
