@@ -1,162 +1,171 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Shiv Bricks</title>
+
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="./style.css">
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#0d6efd">
-  
 </head>
-<body>
-  <header class="bg-primary text-white py-3">
-    <h1 class="text-center mb-0">Shiv Bricks</h1>
-  </header>
 
-  <main role="main" class="container my-4">
-    <form id="entryForm" class="entryform" novalidate>
-      <div class="col-12 col-md-3">
-        <label for="deliveryDate" class="form-label">Delivery Date</label>
+<body class="bg-light">
+
+<header class="bg-primary text-white py-3 shadow-sm">
+  <div class="container text-center">
+    <h1 class="mb-0 fw-semibold">Shiv Bricks</h1>
+    <small class="opacity-75">Delivery Management System</small>
+  </div>
+</header>
+
+<main class="container my-4">
+
+  <!-- ENTRY FORM -->
+  <form id="entryForm" class="card shadow-sm p-3 mb-4" novalidate>
+    <h5 class="mb-3">➕ Add Delivery Entry</h5>
+
+    <div class="row g-3">
+      <div class="col-md-3">
+        <label class="form-label">Delivery Date</label>
         <input type="date" class="form-control" id="deliveryDate" required>
       </div>
 
-      <div class="col-12 col-md-3">
-        <label for="place" class="form-label">Place</label>
-        <input type="text" class="form-control" id="place" placeholder="Place" required>
+      <div class="col-md-3">
+        <label class="form-label">Place</label>
+        <input type="text" class="form-control" id="place" required>
       </div>
-      <div class="col-12 col-md-3">
-        <label for="party" class="form-label">Party</label>
-        <input type="text" class="form-control" id="party" placeholder="Party" required>
+
+      <div class="col-md-3">
+        <label class="form-label">Party</label>
+        <input type="text" class="form-control" id="party" required>
       </div>
-      <div class="col-12 col-md-3">
-        <label for="area" class="form-label">Area</label>
-        <input type="text" class="form-control" id="area" placeholder="Area" required>
+
+      <div class="col-md-3">
+        <label class="form-label">Area</label>
+        <input type="text" class="form-control" id="area" required>
       </div>
-      <div class="col-12 col-md-3">
-        <label for="purchase" class="form-label">Purchase</label>
-        <input type="text" class="form-control" id="purchase" placeholder="purchase" required>
+
+      <div class="col-md-3">
+        <label class="form-label">Purchase</label>
+        <input type="text" class="form-control" id="purchase" required>
       </div>
-      <div class="col-12 col-md-3">
-        <label for="transporter" class="form-label">Transporter</label>
-        <input type="text" class="form-control" id="transporter" placeholder="Transporter" required>
+
+      <div class="col-md-3">
+        <label class="form-label">Transporter</label>
+        <input type="text" class="form-control" id="transporter" required>
       </div>
-      <div class="col-12 col-md-3">
-        <label for="quantity" class="form-label">Quantity</label>
-        <input type="text" class="form-control" id="quantity" placeholder="quantity" required>
-      </div>
-      
-      <div class="col-12">
-        <button type="submit" id="submitbutton" class="btn btn-success">Add Delivery Entry</button>
-      </div>
-    </form>
-    
-    <div class="d-flex align-items-center" style="margin-bottom: 20px; margin-top: 20px;">
-        <ul class="nav nav-tabs" id="yearTabs" style="flex-grow: 1;">
-            </ul>
-        <button class="btn btn-outline-primary btn-sm" id="addTabButton" style="margin-left: 10px; white-space: nowrap;">+ Add Tab</button>
-    </div>
-    <div class="row my-4">
-      <div class="col-12 col-md-2">
-        <label for="startDate" class="form-label">From Date</label>
-        <input type="date" class="form-control" id="startDate" aria-label="Filter by date" placeholder="Start Date">
-      </div>
-      <div class="col-12 col-md-2">
-        <label for="endDate" class="form-label">To Date</label>
-        <input type="date" class="form-control" id="endDate" aria-label="Filter by date" placeholder="End Date">
-      </div>
-      <div class="col-12 col-md-2">
-        <label for="filterPlace" class="form-label">Place</label>
-        <input type="text" class="form-control" id="filterPlace" aria-label="Filter by place" placeholder="Place">
-      </div>
-      
-      <div class="col-12 col-md-2">
-        <label for="filterParty" class="form-label">Party</label>
-        <input type="text" class="form-control" id="filterParty" aria-label="Filter by party" placeholder="Party">
-      </div>
-      <div class="col-12 col-md-2">
-        <label for="filterArea" class="form-label">Area</label>
-        <input type="text" class="form-control" id="filterArea" aria-label="Filter by area" placeholder="Area">
-      </div>
-      <div class="col-12 col-md-2">
-        <label for="filtePurchase" class="form-label">Purchase</label>
-        <input type="text" class="form-control" id="filterPurchase" aria-label="Filter by purchase" placeholder="Purchase">
-      </div>
-      <div class="col-12 col-md-2">
-        <label for="filterTransporter" class="form-label">Transporter</label>
-        <input type="text" class="form-control" id="filterTransporter" aria-label="Filter by transporter" placeholder="Transporter">
-      </div>
-      <div class="col-12 col-md-2">
-        <label for="filterQuantity" class="form-label">Quantity</label>
-        <input type="text" class="form-control" id="filterQuantity" aria-label="Filter by quantity" placeholder="Quantity">
-      </div>
-      <div class="col-12 col-md-4 text-end">
-        <button id="filterButton" class="btn btn-primary" onclick="applyFilters()">Filter</button>
+
+      <div class="col-md-3">
+        <label class="form-label">Quantity</label>
+        <input type="text" class="form-control" id="quantity" required>
       </div>
     </div>
 
-    <div class="mb-3">
-  <strong>Select columns to export:</strong><br>
+    <div class="mt-3">
+      <button type="submit" id="submitbutton" class="btn btn-success w-100">
+        Add Delivery Entry
+      </button>
+    </div>
+  </form>
 
-  <label><input type="checkbox" class="pdf-col" value="0" checked> No.</label>
-  <label><input type="checkbox" class="pdf-col" value="1" checked> Date</label>
-  <label><input type="checkbox" class="pdf-col" value="2" checked> Place</label>
-  <label><input type="checkbox" class="pdf-col" value="3" checked> Party</label>
-  <label><input type="checkbox" class="pdf-col" value="4" checked> Area</label>
-  <label><input type="checkbox" class="pdf-col" value="5" checked> Purchase</label>
-  <label><input type="checkbox" class="pdf-col" value="6" checked> Transporter</label>
-  <label><input type="checkbox" class="pdf-col" value="7" checked> Quantity</label>
+  <!-- TABS -->
+  <div class="d-flex align-items-center mb-3">
+    <ul class="nav nav-pills gap-2" id="yearTabs"></ul>
+    <button class="btn btn-outline-primary btn-sm ms-2" id="addTabButton">+ Add Tab</button>
   </div>
 
-    <div class="table-responsive">
-      <table class="entrytable">
-        <caption class="text-center">Delivery Entries</caption>
-        <thead class="table-light">
-          <tr>
-            <th scope="col">No.</th>
-            <th scope="col">Date</th>
-            <th scope="col">Place</th>
-            <th scope="col">Party</th>
-            <th scope="col">Area</th>
-            <th scope="col">Purchase</th>
-            <th scope="col">Transporter</th>
-            <th scope="col">Quantity</th>
-            <th scope="col"><button id="print" class="print-btn" onclick="exportTableToPDF()">🖨️ Print</button></th>
-          </tr>
-        </thead>
-        <tbody id="entryTableBody">
-          </tbody>
-        <tfoot>
-            <tr class="table-secondary" style="font-weight: bold;">
-                <td id="totalCount">0</td>
-                <td colspan="6" class="text-end">Total Quantity:</td>
-                <td id="totalQuantity">0</td>
-                <td></td>
-            </tr>
-        </tfoot>
-      </table>
+  <!-- FILTERS -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <strong>🔍 Filters</strong>
+      <button class="btn btn-sm btn-outline-secondary"
+              data-bs-toggle="collapse"
+              data-bs-target="#filterBox">
+        Toggle
+      </button>
     </div>
-  </main>
 
-  <script src="script.js"></script>
-  <script src="filter.js"></script>
-  <script src="exportPDF.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <div class="collapse show" id="filterBox">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-2"><input type="date" class="form-control" id="startDate"></div>
+          <div class="col-md-2"><input type="date" class="form-control" id="endDate"></div>
+          <div class="col-md-2"><input type="text" class="form-control" id="filterPlace" placeholder="Place"></div>
+          <div class="col-md-2"><input type="text" class="form-control" id="filterParty" placeholder="Party"></div>
+          <div class="col-md-2"><input type="text" class="form-control" id="filterArea" placeholder="Area"></div>
+          <div class="col-md-2"><input type="text" class="form-control" id="filterPurchase" placeholder="Purchase"></div>
+          <div class="col-md-2"><input type="text" class="form-control" id="filterTransporter" placeholder="Transporter"></div>
+          <div class="col-md-2"><input type="text" class="form-control" id="filterQuantity" placeholder="Quantity"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <script>
-    // Register service worker for offline support (PWA)
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js')
-          .then(reg => console.log('Service worker registered.', reg))
-          .catch(err => console.error('Service worker registration failed:', err));
-      });
-    }
-  </script>
+  <!-- EXPORT OPTIONS -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <strong>📄 Export Columns</strong>
+      <div class="d-flex flex-wrap gap-3 mt-2">
+        <label><input type="checkbox" class="pdf-col" value="0" checked> No.</label>
+        <label><input type="checkbox" class="pdf-col" value="1" checked> Date</label>
+        <label><input type="checkbox" class="pdf-col" value="2" checked> Place</label>
+        <label><input type="checkbox" class="pdf-col" value="3" checked> Party</label>
+        <label><input type="checkbox" class="pdf-col" value="4" checked> Area</label>
+        <label><input type="checkbox" class="pdf-col" value="5" checked> Purchase</label>
+        <label><input type="checkbox" class="pdf-col" value="6" checked> Transporter</label>
+        <label><input type="checkbox" class="pdf-col" value="7" checked> Quantity</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-responsive">
+    <table class="table table-hover table-bordered align-middle">
+      <thead>
+        <tr>
+          <th>No.</th>
+          <th>Date</th>
+          <th>Place</th>
+          <th>Party</th>
+          <th>Area</th>
+          <th>Purchase</th>
+          <th>Transporter</th>
+          <th>Quantity</th>
+          <th>
+            <button class="btn btn-outline-dark btn-sm" onclick="exportTableToPDF()">🖨 Export PDF</button>
+          </th>
+        </tr>
+      </thead>
+
+      <tbody id="entryTableBody"></tbody>
+
+      <tfoot>
+        <tr class="table-secondary fw-bold">
+          <td id="totalCount">0</td>
+          <td colspan="6" class="text-end">Total Quantity</td>
+          <td id="totalQuantity">0</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+</main>
+
+<script src="script.js"></script>
+<script src="filter.js"></script>
+<script src="exportPDF.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./service-worker.js');
+}
+</script>
+
 </body>
 </html>
-
-
