@@ -8,6 +8,7 @@ function applyFilters() {
     const purchaseVal = filterPurchase.value.toLowerCase().trim();
     const transporterVal = filterTransporter.value.toLowerCase().trim();
     const quantityVal = filterQuantity.value.toLowerCase().trim();
+    const monthVal = monthFilter ? monthFilter.value : '';
 
     let visibleCount = 0;
     let visibleQuantitySum = 0;
@@ -22,10 +23,12 @@ function applyFilters() {
         const matchPurchase = !purchaseVal || cells[5].textContent.toLowerCase().includes(purchaseVal);
         const matchTransporter = !transporterVal || cells[6].textContent.toLowerCase().includes(transporterVal);
         const matchQuantity = !quantityVal || cells[7].textContent.toLowerCase().includes(quantityVal);
+        const rowMonthKey = formatdatetoYYYYMMDD(cells[1].textContent).slice(0, 7); // "YYYY-MM"
+        const matchMonth = !monthVal || rowMonthKey === monthVal;
 
         // Show row if all filter conditions match
         if (matchstartDate && matchendDate && matchPlace && matchParty && 
-            matchArea && matchTransporter && matchPurchase && matchQuantity) {
+            matchArea && matchTransporter && matchPurchase && matchQuantity && matchMonth) {
             row.style.display = '';
             visibleCount++;
             const qty = parseFloat(cells[7].textContent) || 0;
@@ -61,3 +64,4 @@ filterArea.addEventListener('input', applyFilters);
 filterPurchase.addEventListener('input', applyFilters);
 filterTransporter.addEventListener('input', applyFilters);
 filterQuantity.addEventListener('input', applyFilters);
+if (monthFilter) monthFilter.addEventListener('change', applyFilters);
