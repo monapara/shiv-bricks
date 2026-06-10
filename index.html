@@ -8,7 +8,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="./style.css">
   <link rel="manifest" href="./manifest.json">
-  <meta name="theme-color" content="#0d6efd">
+  <meta name="theme-color" content="#a2542f">
 </head>
 
 <body class="bg-light">
@@ -119,6 +119,14 @@
     </div>
   </div>
 
+  <!-- MONTH VIEW -->
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <label for="monthFilter" class="form-label mb-0">Month</label>
+    <select id="monthFilter" class="form-control" style="max-width: 220px;">
+      <option value="">All</option>
+    </select>
+  </div>
+
   <!-- TABLE -->
   <div class="table-responsive">
     <table class="table table-hover table-bordered align-middle">
@@ -168,4 +176,3 @@ if ('serviceWorker' in navigator) {
 
 </body>
 </html>
-
