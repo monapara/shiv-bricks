@@ -48,6 +48,7 @@ const quantityInput = document.getElementById('quantity')
 const submitbutton = document.getElementById('submitbutton');
 const addTabButton = document.getElementById('addTabButton');
 const tableBody = document.getElementById('entryTableBody');
+const monthFilter = document.getElementById('monthFilter');
 
 // Cache all filter inputs
 const filterstartDate = document.getElementById('startDate');
@@ -111,6 +112,7 @@ form.addEventListener('submit', function(e) {
     if (editIndex === -1) {
         // Add new entry to the *active tab's array*
         deliveryData[activeTab].push(entry);
+        if (monthFilter) monthFilter.value = ''; // jump to All so the new entry is visible
     } else {
         // Update existing entry in the *active tab's array*
         deliveryData[activeTab][editIndex] = entry;
@@ -166,6 +168,7 @@ function renderTable() {
         actionsCell.appendChild(editBtn);
         actionsCell.appendChild(delBtn);
     });
+    populateMonths(); // keep the Month dropdown in sync with the active tab
     applyFilters(); // Reapply any active filters after rendering
 }
 
@@ -257,6 +260,41 @@ function getSortedTabs() {
 // === NEW "SAVE DATA" HELPER ===
 function saveData() {
     localStorage.setItem('deliveryData', JSON.stringify(deliveryData));
+}
+
+// === NEW "MONTH VIEW" HELPERS ===
+// Rebuild the Month dropdown from the active tab's entries.
+// Keeps the current choice selected if that month still has entries.
+function populateMonths() {
+    if (!monthFilter) return;
+    const previous = monthFilter.value;
+    const entries = deliveryData[activeTab] || [];
+
+    // Distinct "YYYY-MM" values present in this tab, sorted oldest to newest
+    const keys = [...new Set(
+        entries
+            .map(e => (e.date || '').slice(0, 7))
+            .filter(k => k.length === 7)
+    )].sort();
+
+    monthFilter.innerHTML = '<option value="">All</option>';
+    keys.forEach(key => {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = monthLabel(key);
+        monthFilter.appendChild(opt);
+    });
+
+    monthFilter.value = keys.includes(previous) ? previous : '';
+}
+
+// "2024-04" -> "April 2024"
+function monthLabel(key) {
+    const [year, month] = key.split('-');
+    const names = ['January', 'February', 'March', 'April', 'May', 'June',
+                   'July', 'August', 'September', 'October', 'November', 'December'];
+    const idx = parseInt(month, 10) - 1;
+    return (names[idx] || month) + ' ' + year;
 }
 
 // --- All functions from filter.js (like formatDateToDDMMYYYY) are still needed ---
