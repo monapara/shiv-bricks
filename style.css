@@ -1,34 +1,355 @@
+/* =====================================================================
+   Shiv Bricks — visual theme
+   A warm, fired-clay palette for a daily delivery register.
+   This file only restyles. No labels, wording, IDs, or markup logic
+   are changed anywhere in the app.
+   ===================================================================== */
+
+:root {
+  /* Ink & paper */
+  --ink:         #2a211c;   /* deep warm espresso — primary text        */
+  --ink-soft:    #5a4f47;   /* secondary text / labels                  */
+  --mortar:      #8c8076;   /* muted text / placeholders                */
+  --paper:       #f4f1eb;   /* warm light background                    */
+  --surface:     #ffffff;   /* cards / inputs                           */
+  --surface-2:   #fbf8f3;   /* subtle alternate surface                 */
+  --line:        #e7dfd3;   /* hairline borders                         */
+  --line-strong: #d8ccbb;   /* input borders                            */
+
+  /* Brand — fired brick / clay */
+  --clay:        #a2542f;
+  --clay-deep:   #874223;
+  --clay-tint:   #f4e6dc;
+
+  /* Accents */
+  --ochre:       #c9802f;   /* kiln amber — tally lines, focus          */
+  --go:          #3f7d4e;   /* add / confirm green                      */
+  --go-deep:     #346841;
+  --stop:        #c0392b;   /* delete red                               */
+  --stop-deep:   #9e2f23;
+  --slate:       #3e5c76;   /* edit (calm third colour)                 */
+  --slate-deep:  #314b61;
+
+  /* Shape & depth */
+  --radius:      14px;
+  --radius-sm:   10px;
+  --radius-pill: 999px;
+  --shadow-sm:   0 1px 2px rgba(42,33,28,.05), 0 1px 3px rgba(42,33,28,.05);
+  --shadow-md:   0 8px 24px rgba(42,33,28,.10);
+
+  --font-sans:   system-ui, -apple-system, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, sans-serif;
+
+  /* Re-point Bootstrap's primary so links / generic focus inherit clay */
+  --bs-primary: #a2542f;
+  --bs-primary-rgb: 162, 84, 47;
+}
+
+/* ---------- Base ---------- */
 body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
+  background-color: var(--paper);
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
+body.bg-light { background-color: var(--paper) !important; }
+main.container { max-width: 1140px; }
+::selection { background: var(--clay-tint); color: var(--ink); }
 
-.nav-pills .nav-link {
-  border-radius: 20px;
-  padding: 6px 14px;
-  font-weight: 500;
+/* ---------- Header / wordmark (the signature) ---------- */
+header.bg-primary {
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.045) 0 1px, transparent 1px 26px),
+    linear-gradient(135deg, var(--clay) 0%, var(--clay-deep) 100%) !important;
+  border-bottom: 3px solid var(--ochre);
+  box-shadow: 0 2px 0 rgba(0,0,0,.06), var(--shadow-sm) !important;
 }
-
-.nav-pills .nav-link.active {
-  background: linear-gradient(135deg, #0d6efd, #0b5ed7);
-  box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
-}
-
-.table th {
-  background: #f8f9fa;
-  font-size: 12px;
+header h1 {
+  font-weight: 800;
   text-transform: uppercase;
+  letter-spacing: .06em;
+  font-size: clamp(1.55rem, 4.5vw, 2.15rem);
+  color: #fbf1e9;
+  /* pressed-into-clay / stamped look */
+  text-shadow: 0 1px 0 rgba(0,0,0,.22), 0 -1px 0 rgba(255,255,255,.05);
 }
 
-.table td {
+/* ---------- Cards ---------- */
+.card {
+  --bs-card-bg: var(--surface);
+  --bs-card-border-color: var(--line);
+  --bs-card-cap-bg: var(--surface-2);
+  --bs-card-cap-color: var(--ink);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+.card-header {
+  border-bottom: 1px solid var(--line);
+  font-weight: 600;
+  color: var(--ink);
+  padding: .85rem 1rem;
+}
+.card-body { padding: 1.1rem; }
+.card h5 { color: var(--ink); font-weight: 700; letter-spacing: .01em; }
+
+/* ---------- Form controls ---------- */
+.form-label {
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-bottom: .35rem;
+  font-size: .92rem;
+}
+.form-control {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: .62rem .8rem;
+  font-size: 1rem;             /* >=16px keeps mobile from zooming */
+  color: var(--ink);
+  background-color: var(--surface);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.form-control::placeholder { color: var(--mortar); }
+.form-control:hover { border-color: var(--clay); }
+.form-control:focus {
+  border-color: var(--clay);
+  box-shadow: 0 0 0 .2rem rgba(162,84,47,.18);
+  background-color: var(--surface);
+  color: var(--ink);
+}
+
+/* ---------- Buttons (re-themed through Bootstrap's button vars) ---------- */
+.btn {
+  --bs-btn-font-weight: 600;
+  border-radius: var(--radius-sm);
+  transition: transform .12s ease, box-shadow .15s ease,
+              background-color .15s ease, color .15s ease, border-color .15s ease;
+}
+.btn-success, .btn-primary, .btn-danger { box-shadow: var(--shadow-sm); }
+.btn-success:hover, .btn-primary:hover, .btn-danger:hover,
+.btn-outline-primary:hover, .btn-outline-secondary:hover, .btn-outline-dark:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Add Delivery Entry — primary action */
+.btn-success {
+  --bs-btn-bg: var(--go);
+  --bs-btn-border-color: var(--go);
+  --bs-btn-hover-bg: var(--go-deep);
+  --bs-btn-hover-border-color: var(--go-deep);
+  --bs-btn-active-bg: var(--go-deep);
+  --bs-btn-active-border-color: var(--go-deep);
+  --bs-btn-color: #fff;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-active-color: #fff;
+  letter-spacing: .02em;
+  padding-top: .7rem;
+  padding-bottom: .7rem;
+  font-size: 1.05rem;
+}
+
+/* Edit */
+.btn-primary {
+  --bs-btn-bg: var(--slate);
+  --bs-btn-border-color: var(--slate);
+  --bs-btn-hover-bg: var(--slate-deep);
+  --bs-btn-hover-border-color: var(--slate-deep);
+  --bs-btn-active-bg: var(--slate-deep);
+  --bs-btn-active-border-color: var(--slate-deep);
+  --bs-btn-color: #fff;
+  --bs-btn-hover-color: #fff;
+}
+
+/* Delete */
+.btn-danger {
+  --bs-btn-bg: var(--stop);
+  --bs-btn-border-color: var(--stop);
+  --bs-btn-hover-bg: var(--stop-deep);
+  --bs-btn-hover-border-color: var(--stop-deep);
+  --bs-btn-active-bg: var(--stop-deep);
+  --bs-btn-active-border-color: var(--stop-deep);
+  --bs-btn-color: #fff;
+  --bs-btn-hover-color: #fff;
+}
+
+/* + Add Tab */
+.btn-outline-primary {
+  --bs-btn-color: var(--clay);
+  --bs-btn-border-color: var(--clay);
+  --bs-btn-hover-bg: var(--clay);
+  --bs-btn-hover-border-color: var(--clay);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-active-bg: var(--clay-deep);
+  --bs-btn-active-border-color: var(--clay-deep);
+  --bs-btn-active-color: #fff;
+}
+
+/* Filters Toggle */
+.btn-outline-secondary {
+  --bs-btn-color: var(--ink-soft);
+  --bs-btn-border-color: var(--line-strong);
+  --bs-btn-hover-bg: var(--ink);
+  --bs-btn-hover-border-color: var(--ink);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-active-bg: var(--ink);
+  --bs-btn-active-border-color: var(--ink);
+}
+
+/* Export PDF (default styling outside the table header) */
+.btn-outline-dark {
+  --bs-btn-color: var(--ink);
+  --bs-btn-border-color: var(--ink);
+  --bs-btn-hover-bg: var(--ink);
+  --bs-btn-hover-border-color: var(--ink);
+  --bs-btn-hover-color: #fff;
+}
+
+/* ---------- Tabs (year / season) ---------- */
+.nav-pills {
+  --bs-nav-pills-link-active-bg: var(--clay);
+  --bs-nav-pills-link-active-color: #fff;
+  --bs-nav-pills-border-radius: var(--radius-pill);
+  flex-wrap: wrap;
+}
+.nav-pills .nav-link {
+  border-radius: var(--radius-pill);
+  padding: .5rem .95rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  transition: all .15s ease;
+}
+.nav-pills .nav-link:hover {
+  background: var(--clay-tint);
+  border-color: var(--clay);
+  color: var(--clay-deep);
+}
+.nav-pills .nav-link.active {
+  background: linear-gradient(135deg, var(--clay), var(--clay-deep));
+  border-color: var(--clay-deep);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(162,84,47,.28);
+}
+#addTabButton { white-space: nowrap; }
+
+/* ---------- Export column chips ---------- */
+/* Plain fallback for browsers without :has() — the row holds only these labels */
+.d-flex.flex-wrap.gap-3 > label,
+label:has(> input.pdf-col) {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .45rem .8rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  transition: all .15s ease;
+}
+label:has(> input.pdf-col):hover { border-color: var(--clay); color: var(--clay-deep); }
+label:has(> input.pdf-col:checked) {
+  background: var(--clay-tint);
+  border-color: var(--clay);
+  color: var(--clay-deep);
+}
+input.pdf-col {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--clay);
+  cursor: pointer;
+}
+
+/* ---------- Table (the register) ---------- */
+.table-responsive {
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;            /* round the corners cleanly */
+}
+.table-responsive { overflow-x: auto; }   /* keep horizontal scroll on small screens */
+.table {
+  --bs-table-bg: var(--surface);
+  --bs-table-color: var(--ink);
+  --bs-border-color: var(--line);
+  --bs-table-hover-bg: var(--clay-tint);
+  --bs-table-hover-color: var(--ink);
+  margin-bottom: 0;
   vertical-align: middle;
 }
+.table > :not(caption) > * > * { padding: .72rem .85rem; }
 
+/* Header row — sturdy ink bar, like a printed ledger heading */
+.table thead th {
+  background: var(--ink);
+  color: #f3ece2;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  border-color: #3a302a;
+  white-space: nowrap;
+}
+
+/* Body rows */
+.table tbody td { border-color: var(--line); }
+.table-hover > tbody > tr:hover > * { background: var(--clay-tint); }
+#entryTableBody td:last-child { white-space: nowrap; }
+
+/* Export PDF button lives in the dark header cell — make it readable there */
+.table thead th:last-child { padding-top: .45rem; padding-bottom: .45rem; }
+.table thead th:last-child .btn-outline-dark {
+  --bs-btn-bg: transparent;
+  --bs-btn-color: #f3ece2;
+  --bs-btn-border-color: rgba(243,236,226,.55);
+  --bs-btn-hover-bg: #f3ece2;
+  --bs-btn-hover-color: var(--ink);
+  --bs-btn-hover-border-color: #f3ece2;
+  --bs-btn-active-bg: #f3ece2;
+  --bs-btn-active-color: var(--ink);
+  box-shadow: none;
+}
+
+/* Totals row — the daily tally */
+.table tfoot .table-secondary {
+  --bs-table-bg: var(--clay-tint);
+  --bs-table-color: var(--ink);
+}
+.table tfoot td { border-color: var(--line-strong); font-weight: 700; }
+#totalCount, #totalQuantity {
+  color: var(--clay-deep);
+  font-size: 1.05rem;
+  box-shadow: inset 0 -2px 0 var(--ochre);  /* tallied underline */
+}
+
+/* ---------- Focus visibility (keyboard a11y) ---------- */
+:focus-visible { outline: 3px solid var(--ochre); outline-offset: 2px; }
+.form-control:focus-visible { outline: none; }   /* uses the clay ring above */
+.btn-success:focus-visible,
+.btn-primary:focus-visible,
+.btn-danger:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.nav-link:focus-visible { outline-offset: -2px; }
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+  .btn:hover, .nav-pills .nav-link:hover { transform: none !important; }
+}
+
+/* ---------- Mobile ---------- */
 @media (max-width: 768px) {
-  h1 {
-    font-size: 1.4rem;
-  }
-
-  .table {
-    font-size: 13px;
-  }
+  header h1 { letter-spacing: .04em; }
+  main.container { margin-top: 1rem !important; }
+  .card-body { padding: .9rem; }
+  .table { font-size: .9rem; }
+  .table > :not(caption) > * > * { padding: .6rem .6rem; }
+  .btn-success { font-size: 1rem; }
+  .nav-pills .nav-link { padding: .5rem .85rem; }
 }
