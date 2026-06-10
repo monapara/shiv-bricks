@@ -76,6 +76,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     renderTabs();
     renderTable();
+
+    // column checkboxes now also show/hide columns in the on-screen table
+    document.querySelectorAll('.pdf-col').forEach(cb => {
+        cb.addEventListener('change', applyColumnVisibility);
+    });
 });
 
 // === NEW "ADD TAB" BUTTON LISTENER ===
@@ -170,6 +175,7 @@ function renderTable() {
     });
     populateMonths(); // keep the Month dropdown in sync with the active tab
     applyFilters(); // Reapply any active filters after rendering
+    applyColumnVisibility(); // re-apply hidden/shown columns to the new rows
 }
 
 // Edit entry: fill form with data
@@ -295,6 +301,47 @@ function monthLabel(key) {
                    'July', 'August', 'September', 'October', 'November', 'December'];
     const idx = parseInt(month, 10) - 1;
     return (names[idx] || month) + ' ' + year;
+}
+
+// === NEW "COLUMN SHOW / HIDE" HELPER ===
+// Show or hide the eight data columns (0..7) in the on-screen table based on
+// the column checkboxes. Cells are only hidden (display:none), never removed,
+// so filtering and the PDF export still read every column correctly.
+function applyColumnVisibility() {
+    const checks = document.querySelectorAll('.pdf-col');
+    if (!checks.length) return;
+
+    const visible = {};
+    checks.forEach(cb => { visible[parseInt(cb.value, 10)] = cb.checked; });
+    const isShown = (i) => visible[i] !== false; // default to shown
+
+    // Header + body cells for the eight data columns
+    const headRow = document.querySelector('thead tr');
+    for (let i = 0; i <= 7; i++) {
+        const disp = isShown(i) ? '' : 'none';
+        if (headRow && headRow.children[i]) headRow.children[i].style.display = disp;
+        document.querySelectorAll('#entryTableBody tr').forEach(tr => {
+            if (tr.children[i]) tr.children[i].style.display = disp;
+        });
+    }
+
+    // Totals row: count cell (col 0), the "Total Quantity" label (spans cols 1-6),
+    // and the quantity total (col 7) -- keep them aligned with the visible columns.
+    const countCell = document.getElementById('totalCount');
+    const qtyCell = document.getElementById('totalQuantity');
+    const labelCell = document.getElementById('totalLabelCell');
+    if (countCell) countCell.style.display = isShown(0) ? '' : 'none';
+    if (qtyCell) qtyCell.style.display = isShown(7) ? '' : 'none';
+    if (labelCell) {
+        let middle = 0;
+        for (let i = 1; i <= 6; i++) if (isShown(i)) middle++;
+        if (middle === 0) {
+            labelCell.style.display = 'none';
+        } else {
+            labelCell.style.display = '';
+            labelCell.colSpan = middle;
+        }
+    }
 }
 
 // --- All functions from filter.js (like formatDateToDDMMYYYY) are still needed ---
