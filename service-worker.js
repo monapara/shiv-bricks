@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shiv-bricks-v8'; 
+const CACHE_NAME = 'shiv-bricks-v11'; 
 const urlsToCache = [
   './',
   './index.html',
@@ -16,6 +16,7 @@ const urlsToCache = [
 
 
 self.addEventListener('install', event => {
+  self.skipWaiting(); // take over as soon as the new version is ready
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(urlsToCache))
@@ -46,10 +47,6 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim()) // control open pages right away
   );
 });
-
-
-
-
