@@ -15,10 +15,20 @@
 
 <header class="bg-primary text-white py-3 shadow-sm">
   <div class="container text-center">
-    <h1 class="mb-0 fw-semibold">Shiv Bricks</h1>
+    <h1 id="firmName" class="mb-0 fw-semibold">Shiv Bricks</h1>
   </div>
 </header>
 
+<div id="loading" class="container my-5 text-center text-muted">Loading…</div>
+
+<div id="signInScreen" class="container my-5" style="display:none;">
+  <div class="card shadow-sm p-4 mx-auto" style="max-width:420px; text-align:center;">
+    <p class="mb-4">Please sign in to open your register.</p>
+    <button id="googleSignInBtn" class="btn btn-success btn-lg w-100">Sign in with Google</button>
+  </div>
+</div>
+
+<div id="appRoot" style="display:none;">
 <main class="container my-4">
 
   <!-- ENTRY FORM -->
@@ -159,7 +169,16 @@
     </table>
   </div>
 
+  <div class="text-center mt-4 mb-2">
+    <button id="signOutBtn" class="btn btn-sm btn-link text-muted">Sign out</button>
+  </div>
+
 </main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/12.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.14.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore-compat.js"></script>
 
 <script src="script.js"></script>
 <script src="filter.js"></script>
