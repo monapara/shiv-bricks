@@ -1,56 +1,49 @@
-// script.js
+// script.js — Shiv Bricks V2 (cloud storage with Firebase)
 
-// === NEW DATA STRUCTURE ===
-// Try to load the new tabbed data object
-let deliveryData = JSON.parse(localStorage.getItem('deliveryData'));
-let activeTab = ""; // This will hold the name of the currently selected tab
+// ===== Firebase init (compat SDK, loaded via <script> in index.html) =====
+const firebaseConfig = {
+  apiKey: "AIzaSyAMFN8EP-vDNftsFtbS8C9MnABxKVyY6vY",
+  authDomain: "shiv-bricks-fe97c.firebaseapp.com",
+  projectId: "shiv-bricks-fe97c",
+  storageBucket: "shiv-bricks-fe97c.firebasestorage.app",
+  messagingSenderId: "761334426715",
+  appId: "1:761334426715:web:d521be0aeec936c9dd237e"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const provider = new firebase.auth.GoogleAuthProvider();
 
-// === NEW MIGRATION SCRIPT ===
-// If new data doesn't exist, check for old 'deliveryEntries' array to migrate
-if (!deliveryData) {
-    let oldEntries = JSON.parse(localStorage.getItem('deliveryEntries'));
-    
-    if (Array.isArray(oldEntries) && oldEntries.length > 0) {
-        console.log('Migrating old array data to new tab-based structure...');
-        deliveryData = {}; // Initialize new data object
-        
-        oldEntries.forEach(entry => {
-            // Use the 'businessYear' we added as the new tab name
-            const tabName = '24-25'; 
-            if (!deliveryData[tabName]) {
-                deliveryData[tabName] = []; // Create an array for this tab
-            }
-            delete entry.businessYear; // No longer needed on the entry itself
-            deliveryData[tabName].push(entry);
-        });
-        
-        localStorage.setItem('deliveryData', JSON.stringify(deliveryData));
-        localStorage.removeItem('deliveryEntries'); // Clean up old key
-        console.log('Migration complete!');
-    } else if (!deliveryData) {
-        // This is a fresh install or the app is empty
-        deliveryData = {};
-    }
-}
-// === END OF MIGRATION SCRIPT ===
+// Offline cache so the app keeps working with no connection
+db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+  console.warn('Offline persistence not enabled:', err && err.code);
+});
 
+// ===== State =====
+let currentUser = null;
+let activeTab = "";
+let tabs = [];            // ordered list of tab names (from the profile doc)
+let currentEntries = [];  // entries for the active tab: [{ id, date, place, ... }]
+let entriesUnsub = null;  // onSnapshot unsubscribe for the active tab
+let editId = null;        // doc id being edited, or null when adding
+let firmName = 'Shiv Bricks'; // this account's firm name (header title + PDF title)
+let hasMigrated = false;  // whether this account already imported old localStorage data
 
-// Cache DOM elements
+// ===== DOM elements =====
 const form = document.getElementById('entryForm');
 const dateInput = document.getElementById('deliveryDate');
-// businessYearInput is removed
 const placeInput = document.getElementById('place');
 const partyInput = document.getElementById('party');
 const areaInput = document.getElementById('area');
 const purchaseInput = document.getElementById('purchase');
 const transporterInput = document.getElementById('transporter');
-const quantityInput = document.getElementById('quantity')
+const quantityInput = document.getElementById('quantity');
 const submitbutton = document.getElementById('submitbutton');
 const addTabButton = document.getElementById('addTabButton');
 const tableBody = document.getElementById('entryTableBody');
 const monthFilter = document.getElementById('monthFilter');
 
-// Cache all filter inputs
+// filter inputs (referenced by filter.js)
 const filterstartDate = document.getElementById('startDate');
 const filterendDate = document.getElementById('endDate');
 const filterPlace = document.getElementById('filterPlace');
@@ -60,292 +53,363 @@ const filterTransporter = document.getElementById('filterTransporter');
 const filterPurchase = document.getElementById('filterPurchase');
 const filterQuantity = document.getElementById('filterQuantity');
 
-// Current edit index (-1 means no edit in progress)
-let editIndex = -1;
+// auth UI
+const signInScreen = document.getElementById('signInScreen');
+const appRoot = document.getElementById('appRoot');
+const loadingEl = document.getElementById('loading');
+const googleSignInBtn = document.getElementById('googleSignInBtn');
+const signOutBtn = document.getElementById('signOutBtn');
 
-// Initialize: render table on page load
-document.addEventListener('DOMContentLoaded', () => {
-    const tabs = getSortedTabs();
-    if (tabs.length > 0) {
-        // Set default to the LATEST year (last item in ascending array)
-        activeTab = tabs[tabs.length - 1]; 
-    } else {
-        // No tabs exist, let's prompt to create one
-        addNewTab();
-    }
-    
-    renderTabs();
-    renderTable();
+// ===== Firestore references (per signed-in user) =====
+function userDocRef() { return db.collection('users').doc(currentUser.uid); }
+function entriesRef() { return userDocRef().collection('entries'); }
 
-    // column checkboxes now also show/hide columns in the on-screen table
-    document.querySelectorAll('.pdf-col').forEach(cb => {
-        cb.addEventListener('change', applyColumnVisibility);
-    });
+// ===== Auth =====
+googleSignInBtn.addEventListener('click', async () => {
+  try { await auth.signInWithPopup(provider); }
+  catch (e) { alert('Sign-in failed: ' + (e.code || e.message)); }
 });
 
-// === NEW "ADD TAB" BUTTON LISTENER ===
+signOutBtn.addEventListener('click', async () => {
+  try { await auth.signOut(); }
+  catch (e) { console.error(e); }
+});
+
+auth.onAuthStateChanged(async (user) => {
+  currentUser = user || null;
+  if (loadingEl) loadingEl.style.display = 'none';
+
+  if (user) {
+    signInScreen.style.display = 'none';
+    appRoot.style.display = '';
+
+    await loadProfile();
+    await migrateLocalData();   // one-time: pull old localStorage data into the cloud
+    if (tabs.length > 0) activeTab = tabs[tabs.length - 1];
+    renderTabs();
+    subscribeEntries();
+    if (tabs.length === 0) addNewTab(); // prompt to create the first tab
+  } else {
+    if (entriesUnsub) { entriesUnsub(); entriesUnsub = null; }
+    appRoot.style.display = 'none';
+    signInScreen.style.display = '';
+    firmName = 'Shiv Bricks';
+    applyFirmName();
+  }
+});
+
+// ===== Profile, firm name & tabs =====
+async function loadProfile() {
+  const snap = await userDocRef().get();
+  const data = snap.exists ? (snap.data() || {}) : {};
+  hasMigrated = data.migrated === true;
+
+  tabs = Array.isArray(data.tabs) ? data.tabs.slice() : [];
+  tabs.sort((a, b) => a.localeCompare(b));
+
+  if (data.firmName) {
+    firmName = data.firmName;
+  } else {
+    // Ask once for the firm / company name, then save it on this account.
+    let name = prompt("Enter your firm / company name:");
+    if (name) name = name.trim();
+    firmName = name || 'Shiv Bricks';
+    const update = { firmName: firmName };
+    if (!snap.exists) update.tabs = []; // create the profile for a brand-new account
+    try { await userDocRef().set(update, { merge: true }); }
+    catch (e) { console.error('Could not save firm name:', e); }
+  }
+  applyFirmName();
+}
+
+function applyFirmName() {
+  const h = document.getElementById('firmName');
+  if (h) h.textContent = firmName;
+  document.title = firmName;
+}
+
+// ===== One-time migration: old localStorage data -> Firestore =====
+async function migrateLocalData() {
+  // Skip if this account already imported, or this device's data was already imported.
+  if (hasMigrated) return;
+  if (localStorage.getItem('deliveryDataMigrated')) return;
+
+  const raw = localStorage.getItem('deliveryData');
+  if (!raw) return;
+
+  let local;
+  try { local = JSON.parse(raw); } catch (e) { return; }
+  if (!local || typeof local !== 'object') return;
+
+  const tabNames = Object.keys(local);
+  if (tabNames.length === 0) return;
+
+  // Gather every entry, preserving its original order via an increasing createdAt.
+  const toWrite = [];
+  const allTabs = new Set(tabs);
+  let order = Date.now();
+  tabNames.forEach((tabName) => {
+    allTabs.add(tabName);
+    const arr = Array.isArray(local[tabName]) ? local[tabName] : [];
+    arr.forEach((e) => {
+      toWrite.push({
+        date: e.date || '',
+        place: e.place || '',
+        party: e.party || '',
+        area: e.area || '',
+        purchase: e.purchase || '',
+        transporter: e.transporter || '',
+        quantity: e.quantity || '',
+        tab: tabName,
+        createdAt: order++
+      });
+    });
+  });
+
+  try {
+    // Firestore batches max out at 500 writes; chunk to stay safe.
+    const CHUNK = 400;
+    for (let i = 0; i < toWrite.length; i += CHUNK) {
+      const batch = db.batch();
+      toWrite.slice(i, i + CHUNK).forEach((entry) => {
+        batch.set(entriesRef().doc(), entry);
+      });
+      await batch.commit();
+    }
+
+    const mergedTabs = [...allTabs].sort((a, b) => a.localeCompare(b));
+    await userDocRef().set({ tabs: mergedTabs, migrated: true }, { merge: true });
+    tabs = mergedTabs;
+    hasMigrated = true;
+    localStorage.setItem('deliveryDataMigrated', '1'); // don't import this device again
+
+    if (toWrite.length > 0) {
+      alert('Imported ' + toWrite.length + ' existing entr' +
+            (toWrite.length === 1 ? 'y' : 'ies') + ' into your account.');
+    }
+  } catch (err) {
+    console.error('Migration failed:', err);
+    alert('Could not import existing data: ' + (err.code || err.message) +
+          '\nYour old data is still safe on this device. Reload to try again.');
+  }
+}
+
+async function addNewTab() {
+  const newTabName = prompt("Enter a name for the new tab (e.g., 'Diwali 2081'):");
+  if (newTabName) {
+    if (tabs.includes(newTabName)) {
+      alert('A tab with this name already exists.');
+      return;
+    }
+    tabs.push(newTabName);
+    tabs.sort((a, b) => a.localeCompare(b));
+    try { await userDocRef().set({ tabs: tabs }, { merge: true }); }
+    catch (e) { alert('Could not create tab: ' + (e.code || e.message)); return; }
+    activeTab = newTabName;
+    renderTabs();
+    subscribeEntries();
+  }
+}
+
 addTabButton.addEventListener('click', addNewTab);
 
-// Form submission handler
-form.addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    // Check if there is an active tab to add to
-    if (!activeTab || !deliveryData[activeTab]) {
-        alert('Please create a tab first before adding entries.');
-        return;
-    }
+function renderTabs() {
+  const tabsContainer = document.getElementById('yearTabs');
+  tabsContainer.innerHTML = '';
+  tabs.forEach((tabName) => {
+    const li = document.createElement('li');
+    li.className = 'nav-item';
+    const a = document.createElement('a');
+    a.className = 'nav-link';
+    if (tabName === activeTab) a.classList.add('active');
+    a.href = '#';
+    a.textContent = tabName;
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      activeTab = tabName;
+      renderTabs();
+      subscribeEntries();
+    });
+    li.appendChild(a);
+    tabsContainer.appendChild(li);
+  });
+}
 
-    // Validation
-    if (!dateInput.value || !placeInput.value || !partyInput.value || !areaInput.value ||
-        !purchaseInput.value || !transporterInput.value || !quantityInput.value) {
-        alert('Please fill in all fields.');
-        return;
-    }
-    
-    // Collect entry data (no businessYear)
-    const entry = {
-        date: dateInput.value,
-        place: placeInput.value.trim(),
-        party: partyInput.value.trim(),
-        area: areaInput.value.trim(),
-        purchase: purchaseInput.value.trim(),
-        transporter: transporterInput.value.trim(),
-        quantity: quantityInput.value.trim()
-    };
+// ===== Entries (live from Firestore) =====
+function subscribeEntries() {
+  if (entriesUnsub) { entriesUnsub(); entriesUnsub = null; }
+  if (!activeTab) { currentEntries = []; renderTable(); return; }
+  entriesUnsub = entriesRef()
+    .where('tab', '==', activeTab)
+    .onSnapshot((snap) => {
+      currentEntries = snap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
+      currentEntries.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      renderTable();
+    }, (err) => {
+      console.error('Entries listener error:', err);
+    });
+}
 
-    if (editIndex === -1) {
-        // Add new entry to the *active tab's array*
-        deliveryData[activeTab].push(entry);
-        if (monthFilter) monthFilter.value = ''; // jump to All so the new entry is visible
+// ===== Form submit (add / update) =====
+form.addEventListener('submit', async function (e) {
+  e.preventDefault();
+  if (!currentUser) return;
+  if (!activeTab) { alert('Please create a tab first before adding entries.'); return; }
+
+  if (!dateInput.value || !placeInput.value || !partyInput.value || !areaInput.value ||
+      !purchaseInput.value || !transporterInput.value || !quantityInput.value) {
+    alert('Please fill in all fields.');
+    return;
+  }
+
+  const entry = {
+    date: dateInput.value,
+    place: placeInput.value.trim(),
+    party: partyInput.value.trim(),
+    area: areaInput.value.trim(),
+    purchase: purchaseInput.value.trim(),
+    transporter: transporterInput.value.trim(),
+    quantity: quantityInput.value.trim()
+  };
+
+  try {
+    if (editId === null) {
+      entry.tab = activeTab;
+      entry.createdAt = Date.now();
+      if (monthFilter) monthFilter.value = ''; // jump to All so the new entry is visible
+      await entriesRef().add(entry);
     } else {
-        // Update existing entry in the *active tab's array*
-        deliveryData[activeTab][editIndex] = entry;
-        editIndex = -1;
-        submitbutton.textContent = 'Add Delivery';
+      await entriesRef().doc(editId).update(entry);
+      editId = null;
+      submitbutton.textContent = 'Add Delivery';
     }
-    
-    // Save the entire data object to localStorage
-    saveData();
-    renderTable(); 
-    form.reset();
+  } catch (err) {
+    alert('Could not save: ' + (err.code || err.message));
+    return;
+  }
+
+  form.reset();
 });
 
-// Render the entries table
+// ===== Render the table from currentEntries =====
 function renderTable() {
-    // Clear existing rows
-    tableBody.innerHTML = '';
+  tableBody.innerHTML = '';
+  let indexno = 1;
 
-    // Get the entries for the *active tab only*
-    const tabEntries = deliveryData[activeTab] || [];
+  currentEntries.forEach((entry) => {
+    const row = tableBody.insertRow();
+    row.insertCell().textContent = indexno++;
+    row.insertCell().textContent = formatDateToDDMMYYYY(entry.date);
+    row.insertCell().textContent = entry.place;
+    row.insertCell().textContent = entry.party;
+    row.insertCell().textContent = entry.area;
+    row.insertCell().textContent = entry.purchase;
+    row.insertCell().textContent = entry.transporter;
+    row.insertCell().textContent = entry.quantity;
 
-    let indexno = 1;
+    const actionsCell = row.insertCell();
+    actionsCell.classList.add('text-center');
+    const editBtn = document.createElement('button');
+    editBtn.textContent = 'Edit';
+    editBtn.className = 'btn btn-sm btn-primary me-2';
+    editBtn.addEventListener('click', () => editEntry(entry.id));
+    const delBtn = document.createElement('button');
+    delBtn.textContent = 'Delete';
+    delBtn.className = 'btn btn-sm btn-danger';
+    delBtn.addEventListener('click', () => deleteEntry(entry.id));
+    actionsCell.appendChild(editBtn);
+    actionsCell.appendChild(delBtn);
+  });
 
-    // Loop over the active tab's entries
-    tabEntries.forEach((entry, index) => { // 'index' is now the correct index in the tab array
-        const row = tableBody.insertRow();
-        row.insertCell().textContent = indexno;
-        indexno++;
-        row.insertCell().textContent = formatDateToDDMMYYYY(entry.date);
-        row.insertCell().textContent = entry.place;
-        row.insertCell().textContent = entry.party;
-        row.insertCell().textContent = entry.area;
-        row.insertCell().textContent = entry.purchase;
-        row.insertCell().textContent = entry.transporter;
-        row.insertCell().textContent = entry.quantity;
-
-        //Actions cell
-        const actionsCell = row.insertCell();
-        actionsCell.classList.add('text-center');
-        const editBtn = document.createElement('button');
-        editBtn.textContent = 'Edit';
-        editBtn.className = 'btn btn-sm btn-primary me-2';
-        
-        // The 'index' from forEach is the correct one to use
-        editBtn.addEventListener('click', () => editEntry(index));
-
-        const delBtn = document.createElement('button');
-        delBtn.textContent = 'Delete';
-        delBtn.className = 'btn btn-sm btn-danger';
-        
-        delBtn.addEventListener('click', () => deleteEntry(index));
-        
-        actionsCell.appendChild(editBtn);
-        actionsCell.appendChild(delBtn);
-    });
-    populateMonths(); // keep the Month dropdown in sync with the active tab
-    applyFilters(); // Reapply any active filters after rendering
-    applyColumnVisibility(); // re-apply hidden/shown columns to the new rows
+  populateMonths();
+  applyFilters();
+  applyColumnVisibility();
 }
 
-// Edit entry: fill form with data
-function editEntry(index) {
-    // Get the entry from the active tab's array
-    const entry = deliveryData[activeTab][index];
-    
-    dateInput.value = entry.date;
-    placeInput.value = entry.place;
-    partyInput.value = entry.party;
-    areaInput.value = entry.area;
-    purchaseInput.value = entry.purchase; 
-    transporterInput.value = entry.transporter;
-    quantityInput.value = entry.quantity;
-    
-    editIndex = index; // This is the index in the tab's array
-    submitbutton.textContent = 'Update Delivery';
-
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+// ===== Edit / delete =====
+function editEntry(id) {
+  const entry = currentEntries.find((x) => x.id === id);
+  if (!entry) return;
+  dateInput.value = entry.date;
+  placeInput.value = entry.place;
+  partyInput.value = entry.party;
+  areaInput.value = entry.area;
+  purchaseInput.value = entry.purchase;
+  transporterInput.value = entry.transporter;
+  quantityInput.value = entry.quantity;
+  editId = id;
+  submitbutton.textContent = 'Update Delivery';
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
 }
 
-// Delete entry: remove from array and update storage/table
-function deleteEntry(index) {
-    if (confirm('Delete this entry?')) {
-        // Remove the entry from the active tab's array
-        deliveryData[activeTab].splice(index, 1);
-        saveData();
-        renderTable();
-        // We don't need to re-render tabs, but if you want to
-        // delete a tab when it's empty, this is where you'd add that logic.
-    }
+async function deleteEntry(id) {
+  if (confirm('Delete this entry?')) {
+    try { await entriesRef().doc(id).delete(); }
+    catch (err) { alert('Could not delete: ' + (err.code || err.message)); }
+  }
 }
 
-// === NEW "ADD TAB" FUNCTION ===
-function addNewTab() {
-    const newTabName = prompt("Enter a name for the new tab (e.g., 'Diwali 2081'):");
-    if (newTabName) {
-        if (deliveryData[newTabName]) {
-            alert('A tab with this name already exists.');
-        } else {
-            // Create a new empty array for this tab
-            deliveryData[newTabName] = [];
-            activeTab = newTabName; // Make the new tab active
-            saveData();
-            renderTabs(); // Redraw the tabs list
-            renderTable(); // Redraw the table (will be empty)
-        }
-    }
-}
-
-// === NEW "RENDER TABS" FUNCTION ===
-function renderTabs() {
-    const tabsContainer = document.getElementById('yearTabs');
-    tabsContainer.innerHTML = ''; // Clear old tabs
-    
-    const tabs = getSortedTabs();
-
-    tabs.forEach(tabName => {
-        const li = document.createElement('li');
-        li.className = 'nav-item';
-        const a = document.createElement('a');
-        a.className = 'nav-link';
-        if (tabName === activeTab) {
-            a.classList.add('active'); // Highlight the selected tab
-        }
-        a.href = '#';
-        a.textContent = tabName;
-        
-        a.addEventListener('click', (e) => {
-            e.preventDefault();
-            activeTab = tabName; // Update the active tab
-            renderTabs(); // Re-render tabs to show new active one
-            renderTable(); // Re-render the table for this tab
-        });
-        
-        li.appendChild(a);
-        tabsContainer.appendChild(li);
-    });
-}
-
-// === NEW "GET TABS" HELPER ===
-function getSortedTabs() {
-    // Get all the keys (tab names) from our data object
-    return Object.keys(deliveryData).sort((a, b) => a.localeCompare(b));
-}
-
-// === NEW "SAVE DATA" HELPER ===
-function saveData() {
-    localStorage.setItem('deliveryData', JSON.stringify(deliveryData));
-}
-
-// === NEW "MONTH VIEW" HELPERS ===
-// Rebuild the Month dropdown from the active tab's entries.
-// Keeps the current choice selected if that month still has entries.
+// ===== Month dropdown =====
 function populateMonths() {
-    if (!monthFilter) return;
-    const previous = monthFilter.value;
-    const entries = deliveryData[activeTab] || [];
-
-    // Distinct "YYYY-MM" values present in this tab, sorted oldest to newest
-    const keys = [...new Set(
-        entries
-            .map(e => (e.date || '').slice(0, 7))
-            .filter(k => k.length === 7)
-    )].sort();
-
-    monthFilter.innerHTML = '<option value="">All</option>';
-    keys.forEach(key => {
-        const opt = document.createElement('option');
-        opt.value = key;
-        opt.textContent = monthLabel(key);
-        monthFilter.appendChild(opt);
-    });
-
-    monthFilter.value = keys.includes(previous) ? previous : '';
+  if (!monthFilter) return;
+  const previous = monthFilter.value;
+  const keys = [...new Set(
+    currentEntries.map((e) => (e.date || '').slice(0, 7)).filter((k) => k.length === 7)
+  )].sort();
+  monthFilter.innerHTML = '<option value="">All</option>';
+  keys.forEach((key) => {
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = monthLabel(key);
+    monthFilter.appendChild(opt);
+  });
+  monthFilter.value = keys.includes(previous) ? previous : '';
 }
 
-// "2024-04" -> "April 2024"
 function monthLabel(key) {
-    const [year, month] = key.split('-');
-    const names = ['January', 'February', 'March', 'April', 'May', 'June',
-                   'July', 'August', 'September', 'October', 'November', 'December'];
-    const idx = parseInt(month, 10) - 1;
-    return (names[idx] || month) + ' ' + year;
+  const [year, month] = key.split('-');
+  const names = ['January', 'February', 'March', 'April', 'May', 'June',
+                 'July', 'August', 'September', 'October', 'November', 'December'];
+  const idx = parseInt(month, 10) - 1;
+  return (names[idx] || month) + ' ' + year;
 }
 
-// === NEW "COLUMN SHOW / HIDE" HELPER ===
-// Show or hide the eight data columns (0..7) in the on-screen table based on
-// the column checkboxes. Cells are only hidden (display:none), never removed,
-// so filtering and the PDF export still read every column correctly.
+// ===== Column show / hide =====
 function applyColumnVisibility() {
-    const checks = document.querySelectorAll('.pdf-col');
-    if (!checks.length) return;
+  const checks = document.querySelectorAll('.pdf-col');
+  if (!checks.length) return;
+  const visible = {};
+  checks.forEach((cb) => { visible[parseInt(cb.value, 10)] = cb.checked; });
+  const isShown = (i) => visible[i] !== false;
 
-    const visible = {};
-    checks.forEach(cb => { visible[parseInt(cb.value, 10)] = cb.checked; });
-    const isShown = (i) => visible[i] !== false; // default to shown
+  const headRow = document.querySelector('thead tr');
+  for (let i = 0; i <= 7; i++) {
+    const disp = isShown(i) ? '' : 'none';
+    if (headRow && headRow.children[i]) headRow.children[i].style.display = disp;
+    document.querySelectorAll('#entryTableBody tr').forEach((tr) => {
+      if (tr.children[i]) tr.children[i].style.display = disp;
+    });
+  }
 
-    // Header + body cells for the eight data columns
-    const headRow = document.querySelector('thead tr');
-    for (let i = 0; i <= 7; i++) {
-        const disp = isShown(i) ? '' : 'none';
-        if (headRow && headRow.children[i]) headRow.children[i].style.display = disp;
-        document.querySelectorAll('#entryTableBody tr').forEach(tr => {
-            if (tr.children[i]) tr.children[i].style.display = disp;
-        });
-    }
-
-    // Totals row: count cell (col 0), the "Total Quantity" label (spans cols 1-6),
-    // and the quantity total (col 7) -- keep them aligned with the visible columns.
-    const countCell = document.getElementById('totalCount');
-    const qtyCell = document.getElementById('totalQuantity');
-    const labelCell = document.getElementById('totalLabelCell');
-    if (countCell) countCell.style.display = isShown(0) ? '' : 'none';
-    if (qtyCell) qtyCell.style.display = isShown(7) ? '' : 'none';
-    if (labelCell) {
-        let middle = 0;
-        for (let i = 1; i <= 6; i++) if (isShown(i)) middle++;
-        if (middle === 0) {
-            labelCell.style.display = 'none';
-        } else {
-            labelCell.style.display = '';
-            labelCell.colSpan = middle;
-        }
-    }
+  const countCell = document.getElementById('totalCount');
+  const qtyCell = document.getElementById('totalQuantity');
+  const labelCell = document.getElementById('totalLabelCell');
+  if (countCell) countCell.style.display = isShown(0) ? '' : 'none';
+  if (qtyCell) qtyCell.style.display = isShown(7) ? '' : 'none';
+  if (labelCell) {
+    let middle = 0;
+    for (let i = 1; i <= 6; i++) if (isShown(i)) middle++;
+    if (middle === 0) labelCell.style.display = 'none';
+    else { labelCell.style.display = ''; labelCell.colSpan = middle; }
+  }
 }
 
-// --- All functions from filter.js (like formatDateToDDMMYYYY) are still needed ---
-// (These are in filter.js, but script.js needs them too)
+document.querySelectorAll('.pdf-col').forEach((cb) => {
+  cb.addEventListener('change', applyColumnVisibility);
+});
+
+// ===== Date helper (also used by filter.js) =====
 function formatDateToDDMMYYYY(dateString) {
   if (!dateString) return '';
   const [year, month, day] = dateString.split("-");
