@@ -2,6 +2,9 @@ function exportTableToPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
+  // Firm/company name for the title (per signed-in account)
+  const title = (typeof firmName !== 'undefined' && firmName) ? firmName : "Shiv Bricks";
+
   // ---- palette (matches the app) ----
   const ink      = [42, 33, 28];    // espresso header + body text
   const white    = [255, 255, 255];
@@ -104,7 +107,7 @@ function exportTableToPDF() {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(18);
       doc.setTextColor(ink[0], ink[1], ink[2]);
-      doc.text("Shiv Bricks", pw / 2, 15.5, { align: "center" });
+      doc.text(title, pw / 2, 15.5, { align: "center" });
 
       // Document date (top-right)
       doc.setFont("helvetica", "normal");
