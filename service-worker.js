@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shiv-bricks-v15';
+const CACHE_NAME = 'shiv-bricks-v16';
 const urlsToCache = [
   './',
   './index.html',
