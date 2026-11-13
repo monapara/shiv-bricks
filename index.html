@@ -9,6 +9,10 @@
   <link rel="stylesheet" href="./style.css">
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#a2542f">
+  <!-- start downloading Firebase early, but don't block rendering on it -->
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/12.14.0/firebase-app-compat.js">
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/12.14.0/firebase-auth-compat.js">
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore-compat.js">
 </head>
 
 <body class="bg-light">
@@ -176,10 +180,7 @@
 </main>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/12.14.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.14.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore-compat.js"></script>
-
+<!-- Firebase SDK is loaded by script.js AFTER the first paint -->
 <script src="script.js"></script>
 <script src="filter.js"></script>
 <script src="exportPDF.js"></script>
